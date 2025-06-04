@@ -33,7 +33,7 @@ public class Main {
          * BFS -> 깊이별 순서 보장 : Queue 활용
          *
          * 깊이 제한 검색 DFS -> 최대 깊이까지 한번 끝까지 탐색하고, 계속 반복
-         * DFS : Stack 활용
+         * DFS : Stack 활용 or 재귀 함수 구현 및 활용
          */
 
 
