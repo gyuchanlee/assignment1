@@ -10,6 +10,10 @@ import java.util.*;
 
 public class Main {
 
+    // 방문 중복 방지 기록용 HashSet
+    private static Set<String> visitedUrls = new HashSet<>();
+    private static int maxDepth;
+
     public static void main(String[] args) {
         /**
          * java 언어를 사용하여  웹 Crawling 프로그램 구현.
@@ -36,11 +40,55 @@ public class Main {
          * DFS : Stack 활용 or 재귀 함수 구현 및 활용
          */
 
+        // 인수 유효성 체크
+        checkArgs(args);
 
-        // 테스트용으로 시작 URL, 최대 깊이를 설정 > 추후 args로 받는걸로 변경
-//        String startUrl = "https://www.khan.co.kr";
-//        int maxDepth = 2;
+        // 시작 URL, 최대 깊이
+        String startUrl = args[0];
+        maxDepth = Integer.parseInt(args[1]);
 
+        crawlingDFS(startUrl, 0);
+    }
+
+    public static void crawlingDFS(String url, int depth) {
+        // 현재 깊이가 최대 깊이보다 클 경우
+        if (depth > maxDepth) {
+            return;
+        }
+
+        // 방문했던 URL 스킵
+        if (visitedUrls.contains(url)) {
+            return;
+        }
+
+        // 현재 URL 출력
+        String indent = "    ".repeat(depth);
+        System.out.println(indent + url + " ( 현재 " + depth + " depth)");
+
+        // 방문한 URL 기록
+        visitedUrls.add(url);
+
+        // 현재 URL의 HTML 문서를 파싱하여 a 태그로 된 링크를 찾는다.
+        try {
+            Document doc = Jsoup.connect(url).timeout(5000).get();
+            Elements links = doc.select("a[href]");
+
+            for (Element link : links) {
+                // 절대 주소 값 -> 일관성 유지
+                String href = link.attr("abs:href");
+                if (isValidUrl(href)) {
+                    // 다음 깊이 이동 -> 재귀함수 호출
+                    crawlingDFS(href, depth + 1);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println(indent + "접속 에러 발생 " + url + e.getMessage());
+        } catch (Exception e) {
+            System.out.println(indent + "예상치 못한 에러 발생 " + url + e.getMessage());
+        }
+    }
+
+    private static void checkArgs(String[] args) {
         // 명령행 인수 검증
         if (args.length != 2) {
             System.out.println("사용법: java -jar Crawling.jar <시작URL> <최대깊이>");
@@ -71,82 +119,6 @@ public class Main {
         } catch (NumberFormatException e) {
             System.out.println("Error: 최대 깊이는 정수여야 합니다.");
             System.exit(1);
-            return;
-        }
-
-
-        // BFS 를 위한 큐 자료구조
-//        Queue<UrlWithDepth> queue = new LinkedList<>();
-
-        // DFS > 스택 구조
-        // 스택에서 맨 위에 있는 URL을 가져옴 (LIFO)
-        Stack<UrlWithDepth> stack = new Stack<>();
-
-
-
-        // 방문한 URL을 저장하기 위한 Set : 중복 방지
-        Set<String> visited = new HashSet<>();
-
-        // 시작 URL을 큐에 추가
-//        queue.offer(new UrlWithDepth(startUrl, 0));
-
-        // 시작 URL을 스택에 추가
-        stack.push(new UrlWithDepth(startUrl, 0));
-
-        visited.add(startUrl);
-
-//        while (!queue.isEmpty()) {
-        while (!stack.isEmpty()) {
-            // 큐에서 맨 앞에 있는 URL을 가져옴
-//            UrlWithDepth current = queue.poll();
-
-            // 스택에서 맨 위의 URL 가져오기
-            UrlWithDepth current = stack.pop();
-
-            // 최대 깊이 체크
-            if (current.depth > maxDepth) {
-                continue;
-            }
-
-            // 들여쓰기로 계층표현
-            String indent = "  ".repeat(current.depth);
-            System.out.println(indent + current.url);
-
-            // 최대 깊이에 도달하면 더 이상 크롤링하지 않음
-            if (current.depth >= maxDepth) {
-                // 최대 깊이 도달 출력문
-                continue;
-            }
-
-            try {
-                /**
-                 * 방문 URL의 연결 링크들 (깊이+1) 수집
-                 */
-
-                Document doc = Jsoup.connect(current.url)
-                        .timeout(5000) // 5초 타임아웃
-                        .get();
-
-                Elements links = doc.select("a[href]");
-
-                for (Element link : links) {
-                    String href = link.attr("abs:href");
-                    /**
-                     * 절대 URL로 변환
-                     * 모든 링크가 `http://` 또는 `https://`로 시작하는 완전한 URL 형태로 고정
-                     */
-
-                    // 유효한 HTTP/HTTPS URL인지 확인
-                    if (isValidUrl(href) && !visited.contains(href)) {
-                        visited.add(href);
-//                        queue.offer(new UrlWithDepth(href, current.depth + 1));
-                        stack.push(new UrlWithDepth(href, current.depth + 1));
-                    }
-                }
-
-            } catch (IOException e) {
-                System.out.println("연결 실패: " + current.url + " - " + e.getMessage());
-            }
         }
     }
 
@@ -161,16 +133,5 @@ public class Main {
                !url.endsWith(".jpg") && // 이미지 파일 제외
                !url.endsWith(".png") &&
                !url.endsWith(".gif");
-    }
-    
-    // URL과 깊이를 함께 저장
-    static class UrlWithDepth {
-        String url;
-        int depth;
-        
-        UrlWithDepth(String url, int depth) {
-            this.url = url;
-            this.depth = depth;
-        }
     }
 }
