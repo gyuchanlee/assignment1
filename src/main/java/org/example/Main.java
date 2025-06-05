@@ -41,9 +41,7 @@ public class Main {
                 System.out.println(currentPath.get(i) + " ( 현재 " + i + " depth)");
             }
             return;
-
         }
-
 
         // 방문했던 URL 스킵
         if (visitedUrls.contains(url)) {
